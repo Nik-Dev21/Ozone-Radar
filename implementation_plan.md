@@ -55,5 +55,35 @@ Since the instructions specify to do everything task by task and wait for confir
 ## User Review Required
 Please review the above task breakdown. Once you approve this plan, I will begin with **Task 1: Scaffold App and Install Dependencies**, and wait for your confirmation before moving to the next task.
 
+### Task 10: Fix TurboModule Runtime Crash in Expo Go
+
+**Error:** `TurboModule method "installTurboModule" called with 1 arguments (expected argument count: 0)`
+
+**Root cause:** Two conflicting native worklets packages are installed — `react-native-worklets-core` (old, for Reanimated 3) and `react-native-worklets` (new, for Reanimated 4). Neither should be a direct dependency because Expo Go SDK 54 already bundles the native code for Reanimated 4 and its worklets runtime. Having them in `package.json` causes the JS-side TurboModule spec to conflict with the native code baked into Expo Go.
+
+**Fix steps:**
+
+1. Remove both worklets packages:
+   ```
+   npm uninstall react-native-worklets react-native-worklets-core --legacy-peer-deps
+   ```
+
+2. Clear Metro cache and reinstall:
+   ```
+   rm -rf node_modules/.cache
+   npx expo start -c
+   ```
+
+3. If the Reanimated babel plugin errors on build looking for `react-native-worklets/plugin`, the plugin is already included via `babel-preset-expo@~54.0.10` for SDK 54 — no separate install is needed. If it still errors, check that `babel-preset-expo` is the correct version:
+   ```
+   npx expo install babel-preset-expo
+   ```
+
+4. Verify the app loads in Expo Go without the TurboModule crash.
+
+**Rule:** For Expo Go apps, never manually install packages that provide native modules already bundled in Expo Go. Use `npx expo install <pkg>` to get the version Expo Go expects.
+
+---
+
 ## Open Questions
 - Should the app be scaffolded directly in the current directory (`/Users/sukhman/Documents/Codehub/Projects/ibm`) or in a sub-folder named `ozone-radar`? I will assume we should scaffold in the current directory since the repository already contains `.env` and `CLAUDE.md`.
